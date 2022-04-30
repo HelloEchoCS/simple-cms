@@ -1,0 +1,31 @@
+body {
+  padding: 1em;
+  font-family: 'Noto Sans', sans-serif;
+}
+
+textarea, button {
+  font-family: inherit;
+  font-size: 100%;
+}
+
+form.inline {
+  display: inline;
+}
+
+#delete {
+  background: transparent;
+  border: transparent;
+  text-decoration: underline;
+}
+
+#delete:hover {
+  cursor: pointer;
+}
+
+.notification {
+  background-color:lightgrey
+}
+
+.notification p {
+  padding: 0.5rem 1rem;
+}

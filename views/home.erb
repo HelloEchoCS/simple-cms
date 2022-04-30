@@ -1,8 +1,14 @@
-<p><%= session.delete(:error) %></p>
 <ul>
   <% @files.each do |file| %>
     <li>
       <a href="/<%= file %>"><%= file %></a>
+      <a href="/<%= file %>/edit">Edit</a>
+      <form class="inline" action="/<%= file %>/delete" method="POST">
+        <button id="delete" type="submit">Delete</button>
+      </form>
     </li>
   <% end %>
 </ul>
+<p>
+  <a href="/new">New Document</a>
+</p>
