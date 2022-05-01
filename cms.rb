@@ -3,10 +3,24 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'tilt/erubis'
 require 'fileutils'
+require 'yaml'
+require 'bcrypt'
 
 configure do
   enable :sessions
   set :session_secret, 'secret'
+end
+
+before do
+  @users = YAML.load_file(config_path + '/users.yml')
+end
+
+def config_path
+  if ENV['RACK_ENV'] == 'test'
+    File.expand_path('../test/config', __FILE__)
+  else
+    File.expand_path('../config', __FILE__)
+  end
 end
 
 def data_path
@@ -39,6 +53,24 @@ def filename_validation(name)
   'A name is required.' if name.empty?
 end
 
+def valid_user?(username, password)
+
+  @users.any? do |user, pass|
+    user == username && BCrypt::Password.new(pass) == password
+  end
+end
+
+def signed_in?
+  session[:signed_in]
+end
+
+def no_signin_redirect
+  unless signed_in?
+    session[:error] = 'You must be signed in to do that.'
+    redirect '/'
+  end
+end
+
 get '/' do
   @files = Dir.glob(data_path + '/*').map do |path|
     File.basename(path)
@@ -49,10 +81,13 @@ end
 
 # Create a new document
 get '/new' do
+  no_signin_redirect
   erb :new
 end
 
 post '/new' do
+  no_signin_redirect
+
   @file_name = params[:file_name].strip.to_s
 
   error = filename_validation(@file_name)
@@ -72,7 +107,7 @@ get '/sign_in' do
 end
 
 post '/sign_in' do
-  if params[:username] == 'admin' && params[:password] == "secret"
+  if valid_user?(params[:username], params[:password])
     session[:signed_in] = true
     session[:user] = params[:username]
     session[:success] = 'Welcome!'
@@ -105,13 +140,16 @@ end
 
 # Edit one file
 get '/:file/edit' do |file|
+  no_signin_redirect
+
   file_path = data_path + "/#{file}"
   @content = File.read(file_path)
-
   erb :edit
 end
 
 post '/:file' do |file|
+  no_signin_redirect
+
   file_path = data_path + "/#{file}"
   File.write(file_path, params[:content])
   session[:success] = "#{file} has been updated."
@@ -120,6 +158,8 @@ post '/:file' do |file|
 end
 
 post '/:file/delete' do |file|
+  no_signin_redirect
+
   file_path = data_path + "/#{file}"
   File.delete(file_path)
   session[:success] = "#{file} has been deleted."

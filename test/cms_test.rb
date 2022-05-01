@@ -31,6 +31,10 @@ class AppTest < Minitest::Test
     last_request.env["rack.session"]
   end
 
+  def signed_in_session
+    { "rack.session" => { signed_in: true } }
+  end
+
   def test_index
     create_document('history.txt')
     create_document('about.md')
@@ -79,6 +83,10 @@ class AppTest < Minitest::Test
     create_document('test.md', '## Before the test')
 
     get '/test.md/edit'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.',session[:error]
+
+    get '/test.md/edit', {}, signed_in_session
     assert_equal 200, last_response.status
     assert_equal 'text/html;charset=utf-8', last_response['Content-Type']
     assert_includes last_response.body, '<textarea'
@@ -90,6 +98,10 @@ class AppTest < Minitest::Test
     create_document('test.md', '## Before the test')
 
     post '/test.md', content: "After the test"
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.',session[:error]
+
+    post '/test.md', { content: "After the test" }, signed_in_session
     assert_equal 302, last_response.status
     assert_equal 'test.md has been updated.', session[:success]
 
@@ -104,12 +116,20 @@ class AppTest < Minitest::Test
 
   def test_new_document_page
     get '/new'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.',session[:error]
+
+    get '/new', {}, signed_in_session
     assert_equal 200, last_response.status
     assert_includes last_response.body, '<input'
   end
 
   def test_create_new_file
     post '/new', file_name: "test_file.md"
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.',session[:error]
+
+    post '/new', { file_name: "test_file.md" }, signed_in_session
     assert_equal 302, last_response.status
     assert_equal 'test_file.md was created.', session[:success]
 
@@ -119,7 +139,7 @@ class AppTest < Minitest::Test
   end
 
   def test_create_file_with_empty_name
-    post '/new', file_name: ""
+    post '/new', { file_name: "" }, signed_in_session
     assert_equal 422, last_response.status
     assert_nil session[:error]
     assert_includes last_response.body, 'A name is required.'
@@ -129,6 +149,10 @@ class AppTest < Minitest::Test
     create_document('history.txt')
 
     post '/history.txt/delete'
+    assert_equal 302, last_response.status
+    assert_equal 'You must be signed in to do that.',session[:error]
+
+    post '/history.txt/delete', {}, signed_in_session
     assert_equal 302, last_response.status
     assert_equal 'history.txt has been deleted.', session[:success]
 
