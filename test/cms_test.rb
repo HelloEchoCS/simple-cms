@@ -27,6 +27,10 @@ class AppTest < Minitest::Test
     end
   end
 
+  def session
+    last_request.env["rack.session"]
+  end
+
   def test_index
     create_document('history.txt')
     create_document('about.md')
@@ -64,13 +68,11 @@ class AppTest < Minitest::Test
     assert_equal 302, last_response.status
     # Why this is not working?
     # assert_equal 'http://localhost:4567/', last_response['Location']
+    assert_equal 'nothing-here.txt does not exist.', session[:error]
 
     get last_response['Location']
     assert_equal 200, last_response.status
-    assert_includes last_response.body, 'nothing-here.txt does not exist.'
-
-    get '/'
-    refute_includes last_response.body, 'nothing-here.txt does not exist.'
+    assert_nil session[:error]
   end
 
   def test_edit_page
@@ -89,14 +91,12 @@ class AppTest < Minitest::Test
 
     post '/test.md', content: "After the test"
     assert_equal 302, last_response.status
+    assert_equal 'test.md has been updated.', session[:success]
 
     get last_response['Location']
     assert_equal 200, last_response.status
     assert_includes last_response.body, 'test.md'
-    assert_includes last_response.body, 'test.md has been updated.'
-
-    get '/'
-    refute_includes last_response.body, 'test.md has been updated.'
+    assert_nil session[:success]
 
     get '/test.md'
     assert_includes last_response.body, 'After the test'
@@ -111,15 +111,17 @@ class AppTest < Minitest::Test
   def test_create_new_file
     post '/new', file_name: "test_file.md"
     assert_equal 302, last_response.status
+    assert_equal 'test_file.md was created.', session[:success]
 
     get last_response['Location']
-    assert_includes last_response.body, 'test_file.md was created.'
+    assert_nil session[:success]
     assert_includes last_response.body, 'test_file.md</a>'
   end
 
   def test_create_file_with_empty_name
     post '/new', file_name: ""
     assert_equal 422, last_response.status
+    assert_nil session[:error]
     assert_includes last_response.body, 'A name is required.'
   end
 
@@ -128,10 +130,55 @@ class AppTest < Minitest::Test
 
     post '/history.txt/delete'
     assert_equal 302, last_response.status
+    assert_equal 'history.txt has been deleted.', session[:success]
 
     get last_response['Location']
     assert_equal 200, last_response.status
-    assert_includes last_response.body, 'history.txt has been deleted.'
+    assert_nil session[:success]
     refute_includes last_response.body, 'history.txt</a>'
+  end
+
+  def test_sign_in_page
+    get '/sign_in'
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'Username:</lable>'
+    assert_includes last_response.body, '<input type="text"'
+    assert_includes last_response.body, '<input type="password"'
+    assert_includes last_response.body, 'Password:</lable>'
+    assert_includes last_response.body, 'Sign In</button>'
+  end
+
+  def test_successful_sign_in
+    post '/sign_in', username: 'admin', password: 'secret'
+    assert_equal 302, last_response.status
+    assert_equal 'Welcome!', session[:success]
+    assert_equal 'admin', session[:user]
+    assert_equal true, session[:signed_in]
+
+    get last_response['Location']
+    assert_equal 200, last_response.status
+
+    get '/'
+    assert_includes last_response.body, 'Signed in as admin'
+    assert_includes last_response.body, 'Sign Out</button>'
+  end
+
+  def test_wrong_credentials
+    post '/sign_in', username: 'wrongusername', password: 'wrongpassword'
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, 'Invalid Credentials'
+    assert_includes last_response.body, 'value="wrongusername">'
+  end
+
+  def test_sign_out
+    post '/sign_out'
+    assert_equal 302, last_response.status
+    assert_equal 'You have been signed out.', session[:success]
+    assert_nil session[:username]
+    assert_equal false, session[:signed_in]
+
+    get last_response['Location']
+    assert_equal 200, last_response.status
+    assert_includes last_response.body, 'Sign In</a>'
   end
 end

@@ -4,7 +4,6 @@ require 'sinatra/reloader'
 require 'tilt/erubis'
 require 'fileutils'
 
-
 configure do
   enable :sessions
   set :session_secret, 'secret'
@@ -66,6 +65,30 @@ post '/new' do
     session[:success] = "#{@file_name} was created."
     redirect '/'
   end
+end
+
+get '/sign_in' do
+  erb :sign_in
+end
+
+post '/sign_in' do
+  if params[:username] == 'admin' && params[:password] == "secret"
+    session[:signed_in] = true
+    session[:user] = params[:username]
+    session[:success] = 'Welcome!'
+    redirect '/'
+  else
+    session[:error] = 'Invalid Credentials'
+    status 422
+    erb :sign_in
+  end
+end
+
+post '/sign_out' do
+  session[:signed_in] = false
+  session[:user] = nil
+  session[:success] = 'You have been signed out.'
+  redirect '/'
 end
 
 # Open one file

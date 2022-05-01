@@ -12,13 +12,17 @@ form.inline {
   display: inline;
 }
 
-#delete {
+ul.form {
+  list-style-type: none;
+}
+
+button.delete {
   background: transparent;
   border: transparent;
   text-decoration: underline;
 }
 
-#delete:hover {
+button.delete:hover {
   cursor: pointer;
 }
 

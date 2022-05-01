@@ -4,11 +4,23 @@
       <a href="/<%= file %>"><%= file %></a>
       <a href="/<%= file %>/edit">Edit</a>
       <form class="inline" action="/<%= file %>/delete" method="POST">
-        <button id="delete" type="submit">Delete</button>
+        <button class="delete" type="submit">Delete</button>
       </form>
     </li>
   <% end %>
 </ul>
 <p>
   <a href="/new">New Document</a>
+</p>
+<p>
+  <% if session[:signed_in] %>
+    <div>
+      <em>Signed in as <%= session[:user] %>.</em>
+      <form class="inline" action="/sign_out" method="POST">
+          <button class="delete" type="submit">Sign Out</button>
+      </form>
+    </div>
+  <% else %>
+    <a href="/sign_in">Sign In</a>
+  <% end %>
 </p>
